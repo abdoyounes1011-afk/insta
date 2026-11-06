@@ -70,4 +70,4 @@ export interface PipelineStepState {
   badge: string;
 }
 
-export type TabKey = 'campaigns' | 'simulator' | 'logs' | 'settings' | 'guide';
+export type TabKey = 'campaigns' | 'simulator' | 'logs' | 'settings' | 'guide' | 'troubleshooter';

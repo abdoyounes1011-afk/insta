@@ -7,7 +7,8 @@ import {
   BookOpen,
   Instagram,
   Languages,
-  CheckCircle2
+  CheckCircle2,
+  Wrench
 } from 'lucide-react';
 import { Language, TabKey } from '../types';
 import { translations } from '../data/translations';
@@ -87,6 +88,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </span>
       ),
       iconColor: 'text-sky-400'
+    },
+    {
+      key: 'troubleshooter' as TabKey,
+      label: t.troubleshooterTab,
+      icon: Wrench,
+      badge: (
+        <span className="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30 font-semibold">
+          {t.troubleshooterBadge}
+        </span>
+      ),
+      iconColor: 'text-rose-400'
     }
   ];
 

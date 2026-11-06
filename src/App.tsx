@@ -26,8 +26,10 @@ import { SimulatorView } from './components/SimulatorView';
 import { LogsView } from './components/LogsView';
 import { SettingsView } from './components/SettingsView';
 import { GuideView } from './components/GuideView';
+import { Troubleshooter } from './components/Troubleshooter';
 import { ConfirmModal } from './components/ConfirmModal';
 import { ToastContainer, ToastItem } from './components/Toast';
+import { matchKeywords } from './utils/textNormalizer';
 
 const STORAGE_KEY = 'instaflow_state_v2';
 
@@ -467,15 +469,11 @@ export default function App() {
       return;
     }
 
-    const commentLower = commentText.toLowerCase();
-    const keywordsArr = activeCamp.keywords
-      .split(',')
-      .map((k) => k.trim().toLowerCase())
-      .filter(Boolean);
+    // Multilingual Arabic & English Normalizer
+    const matchResult = matchKeywords(commentText, activeCamp.keywords);
+    const matchedKeyword = matchResult.matchedKeyword;
 
-    const matchedKeyword = keywordsArr.find((kw) => commentLower.includes(kw));
-
-    if (!matchedKeyword) {
+    if (!matchResult.isMatch || !matchedKeyword) {
       setPipelineSteps((prev) =>
         prev.map((s) => {
           if (s.step === 4) {
@@ -767,6 +765,7 @@ export default function App() {
             onToggleStatus={handleToggleCampaignStatus}
             onDeleteCampaign={handleDeleteCampaign}
             onOpenSimulator={handleOpenSimulator}
+            onOpenTroubleshooter={() => setActiveTab('troubleshooter')}
             lang={lang}
             accessToken={config.access_token}
           />
@@ -818,6 +817,16 @@ export default function App() {
             onToggleStep={handleToggleGuideStep}
             onCopyText={copyToClipboard}
             lang={lang}
+          />
+        )}
+
+        {/* Tab 6: Auto-Reply Troubleshooter & Diagnostics */}
+        {activeTab === 'troubleshooter' && (
+          <Troubleshooter
+            lang={lang}
+            onOpenSimulator={() => setActiveTab('simulator')}
+            onOpenSettings={() => setActiveTab('settings')}
+            onOpenGuide={() => setActiveTab('guide')}
           />
         )}
       </main>

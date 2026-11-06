@@ -11,7 +11,8 @@ import {
   Trash2,
   CheckCircle2,
   PauseCircle,
-  Smartphone
+  Smartphone,
+  Wrench
 } from 'lucide-react';
 import { Campaign, Language, PresetPost } from '../types';
 import { PRESET_IG_POSTS } from '../data/initialData';
@@ -23,6 +24,7 @@ interface CampaignsViewProps {
   onToggleStatus: (id: number) => void;
   onDeleteCampaign: (id: number) => void;
   onOpenSimulator: (postId: string) => void;
+  onOpenTroubleshooter: () => void;
   lang: Language;
   accessToken: string;
 }
@@ -33,6 +35,7 @@ export const CampaignsView: React.FC<CampaignsViewProps> = ({
   onToggleStatus,
   onDeleteCampaign,
   onOpenSimulator,
+  onOpenTroubleshooter,
   lang,
   accessToken
 }) => {
@@ -205,6 +208,34 @@ export const CampaignsView: React.FC<CampaignsViewProps> = ({
             <span>{t.newCampaign}</span>
           </button>
         </div>
+      </div>
+
+      {/* Troubleshooter Quick Callout Banner */}
+      <div className="bg-gradient-to-r from-rose-950/40 via-indigo-950/30 to-slate-900 border border-rose-500/30 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-lg">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center shrink-0">
+            <Wrench className="w-4 h-4" />
+          </div>
+          <div>
+            <p className="text-xs font-bold text-white">
+              {lang === 'ar'
+                ? 'جربت تكتب كومنت بالكلمة المفتاحية ومحصلش رد تلقائي؟'
+                : 'Commented with a trigger keyword but no auto-reply fired?'}
+            </p>
+            <p className="text-[11px] text-slate-300 mt-0.5">
+              {lang === 'ar'
+                ? 'فحص شامل لجميع الاحتمالات الـ 8 (الـ Webhook، إعداد الرسائل في التطبيق، وضع التطوير في ميتا، والهمزات العربية)'
+                : 'Comprehensive analysis of all 8 possibilities (Webhook connection, Instagram app privacy, Meta dev mode, keyword normalization)'}
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={onOpenTroubleshooter}
+          className="px-3.5 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-semibold shadow-md shadow-rose-600/20 transition flex items-center gap-1.5 shrink-0 cursor-pointer"
+        >
+          <span>{lang === 'ar' ? 'تشخيص وحل المشكلة فوراً' : 'Diagnose & Fix Now'}</span>
+        </button>
       </div>
 
       {/* Create / Edit Campaign Collapsible Form */}
