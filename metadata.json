@@ -1,0 +1,6 @@
+{
+  "name": "InstaFlow - Instagram Comment-to-DM Automation",
+  "description": "Automate Instagram public comment replies and private DM delivery (ManyChat style) with trigger keywords, deduplication, and Graph API integration.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

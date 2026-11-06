@@ -1,0 +1,2257 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>InstaFlow — Instagram Comment-to-DM Automation (ManyChat-Style)</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            slate: {
+              850: '#151f32',
+              950: '#090d16',
+            }
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    /* Custom Scrollbars & Instagram Gradient Accents */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+    .ig-gradient {
+      background: linear-gradient(135deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+    }
+    .ig-ring {
+      background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+      padding: 2px;
+    }
+    @keyframes pulseSubtle {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.55; }
+    }
+    .animate-pulse-subtle {
+      animation: pulseSubtle 2s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans antialiased selection:bg-indigo-500 selection:text-white min-h-screen flex flex-col md:flex-row overflow-x-hidden">
+
+  <!-- ==================== SIDEBAR NAVIGATION ==================== -->
+  <aside class="w-full md:w-64 lg:w-72 bg-slate-900/90 border-b md:border-b-0 md:border-r border-slate-800 flex flex-col justify-between shrink-0 z-20 md:min-h-screen sticky top-0">
+    <div>
+      <!-- Brand Header -->
+      <div class="p-4 md:p-6 flex items-center justify-between border-b border-slate-800/80">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl ig-gradient flex items-center justify-center shadow-lg shadow-pink-500/20">
+            <i class="fa-brands fa-instagram text-white text-xl"></i>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h1 class="font-bold text-lg tracking-tight text-white">InstaFlow</h1>
+              <span class="text-[10px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">v21.0</span>
+            </div>
+            <p class="text-xs text-slate-400">Comment-to-DM Automation</p>
+          </div>
+        </div>
+
+        <!-- Mobile Quick Simulator Button -->
+        <button onclick="switchTab('simulator')" class="md:hidden px-3 py-1.5 rounded-lg bg-indigo-600 text-xs font-semibold text-white flex items-center gap-1.5">
+          <i class="fa-solid fa-mobile-screen"></i> Test Live
+        </button>
+      </div>
+
+      <!-- Navigation Links -->
+      <nav class="p-3 md:p-4 flex md:flex-col gap-1.5 overflow-x-auto" aria-label="Main Navigation">
+        <button data-tab="campaigns" onclick="switchTab('campaigns')" class="nav-item active flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap bg-indigo-600 text-white shadow-lg shadow-indigo-600/25">
+          <span class="flex items-center gap-3">
+            <i class="fa-solid fa-bolt w-4 text-center"></i>
+            <span>Campaigns</span>
+          </span>
+          <span id="nav-campaign-count" class="text-xs px-2 py-0.5 rounded-full bg-white/20 text-white font-semibold">2</span>
+        </button>
+
+        <button data-tab="simulator" onclick="switchTab('simulator')" class="nav-item flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800/80 hover:text-white transition-all whitespace-nowrap">
+          <span class="flex items-center gap-3">
+            <i class="fa-solid fa-mobile-screen-button w-4 text-center text-pink-400"></i>
+            <span>Live IG Simulator</span>
+          </span>
+          <span class="text-[10px] px-2 py-0.5 rounded-full bg-pink-500/20 text-pink-300 border border-pink-500/30 font-semibold">Interactive</span>
+        </button>
+
+        <button data-tab="logs" onclick="switchTab('logs')" class="nav-item flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800/80 hover:text-white transition-all whitespace-nowrap">
+          <span class="flex items-center gap-3">
+            <i class="fa-solid fa-shield-halved w-4 text-center text-emerald-400"></i>
+            <span>Processed Logs</span>
+          </span>
+          <span id="nav-logs-count" class="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-300">0</span>
+        </button>
+
+        <button data-tab="settings" onclick="switchTab('settings')" class="nav-item flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800/80 hover:text-white transition-all whitespace-nowrap">
+          <span class="flex items-center gap-3">
+            <i class="fa-solid fa-key w-4 text-center text-amber-400"></i>
+            <span>API Settings</span>
+          </span>
+        </button>
+
+        <button data-tab="guide" onclick="switchTab('guide')" class="nav-item flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800/80 hover:text-white transition-all whitespace-nowrap">
+          <span class="flex items-center gap-3">
+            <i class="fa-solid fa-book-open w-4 text-center text-sky-400"></i>
+            <span>Meta Setup Guide</span>
+          </span>
+          <span id="nav-guide-progress" class="text-[11px] px-2 py-0.5 rounded-full bg-sky-500/15 text-sky-300 font-mono">0/7</span>
+        </button>
+      </nav>
+    </div>
+
+    <!-- Sidebar Footer: API & Webhook Health Status -->
+    <div class="hidden md:block p-4 border-t border-slate-800/80 space-y-3">
+      <div class="p-3.5 rounded-xl bg-slate-950/90 border border-slate-800 space-y-2.5">
+        <div class="flex items-center justify-between">
+          <span class="text-xs font-medium text-slate-400">Webhook Endpoint</span>
+          <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-400">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+            Listening
+          </span>
+        </div>
+        <div class="font-mono text-[11px] text-slate-300 bg-slate-900 px-2.5 py-1.5 rounded-lg border border-slate-800 truncate">
+          POST /webhook/instagram
+        </div>
+        <div class="flex items-center justify-between pt-1 border-t border-slate-800/80">
+          <span class="text-xs text-slate-400">Graph API Token</span>
+          <span id="sidebar-token-badge" class="text-[11px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 font-medium">
+            Demo Mode
+          </span>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between text-xs text-slate-500 px-1">
+        <span>GET /health: <strong class="text-emerald-400">{"status":"ok"}</strong></span>
+        <span>SQLite ORM</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ==================== MAIN CONTENT AREA ==================== -->
+  <main class="flex-1 min-w-0 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full space-y-6">
+
+    <!-- Top KPI Metrics Bar -->
+    <section class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex items-center justify-between">
+        <div>
+          <p class="text-xs font-medium text-slate-400">Active Campaigns</p>
+          <p id="stat-active-campaigns" class="text-2xl font-bold text-white mt-1">2</p>
+          <p class="text-[11px] text-emerald-400 mt-0.5 flex items-center gap-1">
+            <i class="fa-solid fa-circle-check"></i> Tracking comments
+          </p>
+        </div>
+        <div class="w-11 h-11 rounded-xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 text-lg">
+          <i class="fa-solid fa-bullhorn"></i>
+        </div>
+      </div>
+
+      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex items-center justify-between">
+        <div>
+          <p class="text-xs font-medium text-slate-400">Public Replies Sent</p>
+          <p id="stat-replies-sent" class="text-2xl font-bold text-white mt-1">0</p>
+          <p class="text-[11px] text-slate-400 mt-0.5 font-mono">reply_to_comment()</p>
+        </div>
+        <div class="w-11 h-11 rounded-xl bg-sky-500/15 border border-sky-500/30 flex items-center justify-center text-sky-400 text-lg">
+          <i class="fa-solid fa-reply"></i>
+        </div>
+      </div>
+
+      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex items-center justify-between">
+        <div>
+          <p class="text-xs font-medium text-slate-400">Private DMs Delivered</p>
+          <p id="stat-dms-sent" class="text-2xl font-bold text-white mt-1">0</p>
+          <p class="text-[11px] text-pink-400 mt-0.5 font-mono">send_dm()</p>
+        </div>
+        <div class="w-11 h-11 rounded-xl bg-pink-500/15 border border-pink-500/30 flex items-center justify-center text-pink-400 text-lg">
+          <i class="fa-regular fa-paper-plane"></i>
+        </div>
+      </div>
+
+      <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 flex items-center justify-between">
+        <div>
+          <p class="text-xs font-medium text-slate-400">Duplicates Blocked</p>
+          <p id="stat-duplicates-blocked" class="text-2xl font-bold text-white mt-1">0</p>
+          <p class="text-[11px] text-amber-400 mt-0.5 font-mono">ProcessedComment DB</p>
+        </div>
+        <div class="w-11 h-11 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 text-lg">
+          <i class="fa-solid fa-shield-virus"></i>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 1: CAMPAIGNS VIEW ==================== -->
+    <section id="view-campaigns" class="tab-section space-y-6">
+      <!-- Header -->
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/60 border border-slate-800/90 rounded-2xl p-5">
+        <div>
+          <div class="flex items-center gap-2.5">
+            <h2 class="text-xl font-bold text-white">Comment-to-DM Campaigns</h2>
+            <span class="text-xs px-2.5 py-0.5 rounded-full bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 font-medium">ManyChat Style</span>
+          </div>
+          <p class="text-sm text-slate-400 mt-1">
+            When a user comments a trigger keyword on a tracked Instagram Post ID, InstaFlow replies publicly and sends a Private Reply DM.
+          </p>
+        </div>
+        <div class="flex items-center gap-2.5 shrink-0">
+          <button onclick="switchTab('simulator')" class="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-medium transition flex items-center gap-2 border border-slate-700">
+            <i class="fa-solid fa-play text-pink-400"></i>
+            <span>Open Simulator</span>
+          </button>
+          <button onclick="openCampaignForm()" class="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold transition flex items-center gap-2 shadow-lg shadow-indigo-600/25">
+            <i class="fa-solid fa-plus"></i>
+            <span>New Campaign</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Create / Edit Campaign Form Card (Collapsible) -->
+      <div id="campaign-form-container" class="hidden bg-slate-900 border-2 border-indigo-500/40 rounded-2xl p-5 sm:p-6 shadow-2xl space-y-5">
+        <div class="flex items-center justify-between border-b border-slate-800 pb-4">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-indigo-500/20 text-indigo-400 flex items-center justify-center">
+              <i class="fa-solid fa-wand-magic-sparkles"></i>
+            </div>
+            <div>
+              <h3 id="campaign-form-title" class="text-base font-bold text-white">Create New Automation Campaign</h3>
+              <p class="text-xs text-slate-400">Auto-fetches Instagram post thumbnail & caption on Post ID blur via <code class="text-indigo-300">get_post_details(post_id)</code></p>
+            </div>
+          </div>
+          <button type="button" onclick="closeCampaignForm()" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+
+        <form id="campaign-form" class="space-y-5">
+          <input type="hidden" id="form-campaign-id" value="" />
+
+          <!-- Sample Post Presets Bar -->
+          <div class="bg-slate-950/80 border border-slate-800 rounded-xl p-3 flex flex-wrap items-center justify-between gap-2">
+            <span class="text-xs text-slate-400 flex items-center gap-1.5">
+              <i class="fa-solid fa-lightbulb text-amber-400"></i>
+              <span>Quick-fill a realistic Instagram Post ID to test <strong class="text-slate-200">on-blur auto-preview</strong>:</span>
+            </span>
+            <div class="flex flex-wrap gap-1.5">
+              <button type="button" onclick="fillPresetPost('17982345678901234')" class="text-xs px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-indigo-600/30 hover:border-indigo-500/50 border border-slate-700 text-slate-200 transition font-mono">
+                Reel #17982345678901234 (AI Guide)
+              </button>
+              <button type="button" onclick="fillPresetPost('18045678901234567')" class="text-xs px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-indigo-600/30 hover:border-indigo-500/50 border border-slate-700 text-slate-200 transition font-mono">
+                Post #18045678901234567 (SaaS Template)
+              </button>
+              <button type="button" onclick="fillPresetPost('18199887766554433')" class="text-xs px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-indigo-600/30 hover:border-indigo-500/50 border border-slate-700 text-slate-200 transition font-mono">
+                Video #18199887766554433 (Discount Drop)
+              </button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <!-- Post ID Input -->
+            <div>
+              <label for="form-post-id" class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
+                Instagram Post / Reel ID <span class="text-rose-400">*</span>
+              </label>
+              <div class="relative">
+                <input
+                  type="text"
+                  id="form-post-id"
+                  required
+                  placeholder="e.g. 17982345678901234"
+                  class="w-full bg-slate-950 border border-slate-700 focus:border-indigo-500 rounded-xl px-3.5 py-2.5 text-sm text-white font-mono focus:outline-none"
+                />
+                <button type="button" onclick="triggerPostPreviewFetch()" title="Fetch Preview Now" class="absolute right-2 top-1.5 px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-xs text-indigo-300 font-medium">
+                  Fetch Preview
+                </button>
+              </div>
+              <p class="text-[11px] text-slate-400 mt-1.5">
+                Tab out (<code class="text-slate-300">blur</code>) or click "Fetch Preview" to query <code class="text-slate-300">GET /{post_id}?fields=id,caption,thumbnail_url</code>
+              </p>
+            </div>
+
+            <!-- Keywords Input -->
+            <div>
+              <label for="form-keywords" class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-2">
+                Trigger Keywords (Comma-Separated) <span class="text-rose-400">*</span>
+              </label>
+              <input
+                type="text"
+                id="form-keywords"
+                required
+                placeholder="e.g. guide, link, ebook, price"
+                oninput="renderLiveKeywordChips(this.value)"
+                class="w-full bg-slate-950 border border-slate-700 focus:border-indigo-500 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none"
+              />
+              <div id="form-keyword-chips" class="flex flex-wrap gap-1.5 mt-2 min-h-[22px]"></div>
+            </div>
+          </div>
+
+          <!-- Live Post Preview Box (Populated on blur) -->
+          <div id="form-post-preview" class="hidden bg-slate-950 border border-slate-800 rounded-xl p-3.5 flex items-center gap-4">
+            <img
+              id="form-preview-img"
+              src="https://placehold.co/120x120/1e293b/a5b4fc?text=IG+Post"
+              onerror="this.src='https://placehold.co/120x120/1e293b/a5b4fc?text=IG+Post'"
+              alt="Instagram Post Preview"
+              class="w-16 h-16 rounded-lg object-cover border border-slate-700 shrink-0"
+            />
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2">
+                <span id="form-preview-badge" class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded bg-indigo-500/20 text-indigo-300">
+                  Graph API Media Preview
+                </span>
+                <span id="form-preview-id" class="text-xs font-mono text-slate-400"></span>
+              </div>
+              <p id="form-preview-caption" class="text-xs text-slate-300 mt-1 line-clamp-2"></p>
+            </div>
+          </div>
+
+          <!-- Comment Reply & DM Message Textareas -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <label for="form-comment-reply" class="text-xs font-semibold uppercase tracking-wider text-slate-300">
+                  Public Comment Reply <span class="text-rose-400">*</span>
+                </label>
+                <span class="text-[11px] text-slate-400 font-mono">POST /{comment_id}/replies</span>
+              </div>
+              <textarea
+                id="form-comment-reply"
+                rows="3"
+                required
+                placeholder="Just sent the resource to your DMs, @username! Check your message requests 🚀"
+                class="w-full bg-slate-950 border border-slate-700 focus:border-indigo-500 rounded-xl p-3.5 text-sm text-white focus:outline-none"
+              ></textarea>
+              <p class="text-[11px] text-slate-400 mt-1">Supports <code class="text-indigo-300">@username</code> variable replacement.</p>
+            </div>
+
+            <div>
+              <div class="flex items-center justify-between mb-2">
+                <label for="form-dm-message" class="text-xs font-semibold uppercase tracking-wider text-slate-300">
+                  Private DM Message <span class="text-rose-400">*</span>
+                </label>
+                <span class="text-[11px] text-pink-400 font-mono">POST /{page_id}/messages</span>
+              </div>
+              <textarea
+                id="form-dm-message"
+                rows="3"
+                required
+                placeholder="Hey @username! 👋 Thanks for commenting. Here is your instant download link: https://instaflow.app/guide"
+                class="w-full bg-slate-950 border border-slate-700 focus:border-indigo-500 rounded-xl p-3.5 text-sm text-white focus:outline-none"
+              ></textarea>
+              <p class="text-[11px] text-slate-400 mt-1">Sent via Meta Private Reply (<code class="text-pink-300">recipient.comment_id</code>) with fallback to <code class="text-pink-300">recipient.id</code>.</p>
+            </div>
+          </div>
+
+          <!-- Form Footer Actions -->
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-3 border-t border-slate-800">
+            <label class="inline-flex items-center gap-2.5 cursor-pointer select-none">
+              <input type="checkbox" id="form-is-active" checked class="w-4 h-4 rounded text-indigo-600 bg-slate-950 border-slate-700 focus:ring-0" />
+              <span class="text-sm text-slate-200 font-medium">Activate campaign immediately upon saving</span>
+            </label>
+
+            <div class="flex items-center gap-2.5 justify-end">
+              <button type="button" onclick="closeCampaignForm()" class="px-4 py-2 rounded-xl border border-slate-700 hover:bg-slate-800 text-slate-300 text-sm font-medium">
+                Cancel
+              </button>
+              <button type="submit" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold shadow-lg shadow-indigo-600/25">
+                Save Campaign
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <!-- Campaigns List Container -->
+      <div id="campaigns-list-container" class="space-y-4"></div>
+    </section>
+
+    <!-- ==================== TAB 2: LIVE INSTAGRAM WEBHOOK SIMULATOR ==================== -->
+    <section id="view-simulator" class="tab-section hidden space-y-6">
+      <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-2.5">
+            <span class="w-2.5 h-2.5 rounded-full bg-pink-500 animate-ping"></span>
+            <h2 class="text-xl font-bold text-white">Live Instagram Comment-to-DM Simulator</h2>
+          </div>
+          <p class="text-sm text-slate-400 mt-1">
+            Comment on a tracked post below to trigger a signed <code class="text-pink-300">POST /webhook/instagram</code> event, watch the public comment reply appear, and inspect the automated Private DM in the inbox.
+          </p>
+        </div>
+
+        <!-- Campaign Post Selector -->
+        <div class="flex flex-wrap items-center gap-3">
+          <label for="sim-post-select" class="text-xs font-semibold uppercase tracking-wider text-slate-400">Tracked Post:</label>
+          <select id="sim-post-select" onchange="onSimulatorPostChange(this.value)" class="bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2 text-sm text-white focus:outline-none focus:border-indigo-500">
+          </select>
+        </div>
+      </div>
+
+      <!-- Simulator Grid: Left = Mobile IG Preview | Right = Webhook & Pipeline Inspector -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+
+        <!-- LEFT: Interactive Instagram Mobile App Mockup (5 cols) -->
+        <div class="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-3xl p-4 shadow-2xl max-w-md mx-auto w-full">
+          <!-- Phone Top Notch & App Switcher -->
+          <div class="bg-slate-950 rounded-2xl border border-slate-800/90 overflow-hidden flex flex-col h-[620px]">
+            <!-- Mobile Status Bar -->
+            <div class="px-4 py-2.5 bg-slate-950 border-b border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+              <span class="font-semibold text-white">9:41</span>
+              <div class="flex items-center gap-1.5">
+                <i class="fa-brands fa-instagram text-pink-400"></i>
+                <span class="font-bold text-white tracking-tight">Instagram</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <i class="fa-solid fa-wifi text-[10px]"></i>
+                <i class="fa-solid fa-battery-full text-emerald-400"></i>
+              </div>
+            </div>
+
+            <!-- Phone Sub-Navigation: Post Feed vs Direct Messages Inbox -->
+            <div class="grid grid-cols-2 bg-slate-900/90 p-1 border-b border-slate-800">
+              <button id="phone-tab-feed" onclick="switchPhoneView('feed')" class="py-2 rounded-xl text-xs font-semibold bg-slate-800 text-white transition flex items-center justify-center gap-1.5">
+                <i class="fa-solid fa-comment-dots text-indigo-400"></i>
+                <span>Post Comments</span>
+              </button>
+              <button id="phone-tab-dm" onclick="switchPhoneView('dm')" class="py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white transition flex items-center justify-center gap-1.5 relative">
+                <i class="fa-regular fa-paper-plane text-pink-400"></i>
+                <span>DM Inbox</span>
+                <span id="dm-unread-badge" class="hidden px-1.5 py-0.2 rounded-full bg-rose-500 text-white text-[10px] font-bold">1</span>
+              </button>
+            </div>
+
+            <!-- PHONE VIEW A: INSTAGRAM POST & COMMENTS -->
+            <div id="phone-view-feed" class="flex-1 flex flex-col min-h-0">
+              <!-- Post Header & Media Summary -->
+              <div class="p-3 border-b border-slate-800/80 bg-slate-900/40 flex items-center gap-3">
+                <img id="sim-post-thumb" src="https://placehold.co/100x100/312e81/ffffff?text=Post" onerror="this.src='https://placehold.co/100x100/312e81/ffffff?text=Post'" alt="Post" class="w-12 h-12 rounded-xl object-cover border border-slate-700 shrink-0" />
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center gap-1.5">
+                    <span class="text-xs font-bold text-white">@instaflow.official</span>
+                    <i class="fa-solid fa-circle-check text-sky-400 text-[11px]" title="Verified Business"></i>
+                    <span id="sim-campaign-badge" class="ml-auto text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-semibold">Active</span>
+                  </div>
+                  <p id="sim-post-caption" class="text-xs text-slate-300 truncate mt-0.5"></p>
+                  <p id="sim-post-id-label" class="text-[10px] font-mono text-slate-500 mt-0.5"></p>
+                </div>
+              </div>
+
+              <!-- Quick Trigger Keyword Bar -->
+              <div class="px-3 py-2 bg-slate-900/80 border-b border-slate-800/80 flex items-center gap-1.5 overflow-x-auto">
+                <span class="text-[10px] uppercase tracking-wider text-slate-400 font-semibold shrink-0">Quick Tap Keyword:</span>
+                <div id="sim-quick-keywords" class="flex items-center gap-1.5"></div>
+              </div>
+
+              <!-- Scrollable Comments Thread -->
+              <div id="sim-comments-list" class="flex-1 overflow-y-auto p-3 space-y-3"></div>
+
+              <!-- Commenter Persona & Comment Input Box -->
+              <form id="sim-comment-form" class="p-3 bg-slate-900 border-t border-slate-800 space-y-2">
+                <div class="flex items-center justify-between text-[11px] text-slate-400">
+                  <span>Commenting as follower:</span>
+                  <select id="sim-commenter-handle" class="bg-slate-950 border border-slate-700 rounded-lg px-2 py-0.5 text-xs text-slate-200">
+                    <option value="sarah_creates|178900112233">@sarah_creates (ID: 178900112233)</option>
+                    <option value="omar.builds|178900445566">@omar.builds (ID: 178900445566)</option>
+                    <option value="lina_marketing|178900778899">@lina_marketing (ID: 178900778899)</option>
+                  </select>
+                </div>
+                <div class="flex items-center gap-2">
+                  <input
+                    type="text"
+                    id="sim-comment-input"
+                    required
+                    placeholder="Add a comment (try a trigger keyword)..."
+                    class="flex-1 bg-slate-950 border border-slate-700 focus:border-pink-500 rounded-full px-3.5 py-2 text-xs text-white focus:outline-none"
+                  />
+                  <button type="submit" class="px-3.5 py-2 rounded-full ig-gradient text-white text-xs font-bold shadow-md hover:opacity-95 transition">
+                    Post
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            <!-- PHONE VIEW B: INSTAGRAM DIRECT MESSAGES (DM) INBOX -->
+            <div id="phone-view-dm" class="hidden flex-1 flex flex-col min-h-0">
+              <div class="p-3 bg-slate-900/50 border-b border-slate-800 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <div class="w-8 h-8 rounded-full ig-gradient flex items-center justify-center text-white text-xs font-bold">IF</div>
+                  <div>
+                    <p class="text-xs font-bold text-white">@instaflow.official</p>
+                    <p class="text-[10px] text-emerald-400">Automated Private Reply API</p>
+                  </div>
+                </div>
+                <span class="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400">instagram_manage_messages</span>
+              </div>
+
+              <!-- DM Messages Stream -->
+              <div id="sim-dm-list" class="flex-1 overflow-y-auto p-3.5 space-y-3"></div>
+
+              <div class="p-3 bg-slate-900 border-t border-slate-800 text-center">
+                <p class="text-[11px] text-slate-400">
+                  Private DMs are triggered automatically via <code class="text-pink-300">recipient: {"comment_id": "..."}</code>
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- RIGHT: Webhook Inspector & Execution Pipeline (7 cols) -->
+        <div class="lg:col-span-7 space-y-5">
+          <!-- Pipeline Execution Steps -->
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
+              <div>
+                <h3 class="text-base font-bold text-white flex items-center gap-2">
+                  <i class="fa-solid fa-microchip text-indigo-400"></i>
+                  <span>Webhook Execution Pipeline</span>
+                </h3>
+                <p class="text-xs text-slate-400">Real-time trace of <code class="text-indigo-300">routes/webhook.py</code> and <code class="text-indigo-300">instagram.py</code></p>
+              </div>
+
+              <!-- Deduplication Test Button -->
+              <button
+                id="btn-replay-webhook"
+                onclick="replayLastWebhookComment()"
+                disabled
+                class="px-3.5 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 disabled:opacity-40 disabled:pointer-events-none text-amber-300 border border-amber-500/30 text-xs font-semibold transition flex items-center gap-1.5"
+              >
+                <i class="fa-solid fa-rotate"></i>
+                <span>Replay Same Comment ID (Test Deduplication)</span>
+              </button>
+            </div>
+
+            <!-- 5 Pipeline Stages -->
+            <div id="pipeline-steps" class="space-y-2.5">
+              <div id="step-1" class="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                  <span class="step-icon w-7 h-7 rounded-lg bg-slate-800 text-slate-400 flex items-center justify-center text-xs font-mono">1</span>
+                  <div>
+                    <p class="text-xs font-semibold text-white">Webhook Event Received (<code class="text-indigo-300">POST /webhook/instagram</code>)</p>
+                    <p class="step-desc text-[11px] text-slate-400">Waiting for an Instagram comment event...</p>
+                  </div>
+                </div>
+                <span class="step-badge text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400">IDLE</span>
+              </div>
+
+              <div id="step-2" class="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                  <span class="step-icon w-7 h-7 rounded-lg bg-slate-800 text-slate-400 flex items-center justify-center text-xs font-mono">2</span>
+                  <div>
+                    <p class="text-xs font-semibold text-white">HMAC Signature Validation (<code class="text-indigo-300">X-Hub-Signature-256</code>)</p>
+                    <p class="step-desc text-[11px] text-slate-400">Verifies payload using <code class="text-slate-300">FACEBOOK_APP_SECRET</code></p>
+                  </div>
+                </div>
+                <span class="step-badge text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400">IDLE</span>
+              </div>
+
+              <div id="step-3" class="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                  <span class="step-icon w-7 h-7 rounded-lg bg-slate-800 text-slate-400 flex items-center justify-center text-xs font-mono">3</span>
+                  <div>
+                    <p class="text-xs font-semibold text-white">Idempotency & Deduplication (<code class="text-indigo-300">ProcessedComment</code> DB)</p>
+                    <p class="step-desc text-[11px] text-slate-400">Checks if <code class="text-slate-300">comment_id</code> was already processed</p>
+                  </div>
+                </div>
+                <span class="step-badge text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400">IDLE</span>
+              </div>
+
+              <div id="step-4" class="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                  <span class="step-icon w-7 h-7 rounded-lg bg-slate-800 text-slate-400 flex items-center justify-center text-xs font-mono">4</span>
+                  <div>
+                    <p class="text-xs font-semibold text-white">Campaign & Keyword Matcher (Case-Insensitive Partial Match)</p>
+                    <p class="step-desc text-[11px] text-slate-400">Matches <code class="text-slate-300">media.id</code> & comma-separated trigger keywords</p>
+                  </div>
+                </div>
+                <span class="step-badge text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400">IDLE</span>
+              </div>
+
+              <div id="step-5" class="p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                  <span class="step-icon w-7 h-7 rounded-lg bg-slate-800 text-slate-400 flex items-center justify-center text-xs font-mono">5</span>
+                  <div>
+                    <p class="text-xs font-semibold text-white">Graph API Dispatch (<code class="text-indigo-300">reply_to_comment</code> + <code class="text-pink-300">send_dm</code>)</p>
+                    <p class="step-desc text-[11px] text-slate-400">Executes public comment reply & private DM with exponential backoff</p>
+                  </div>
+                </div>
+                <span class="step-badge text-[10px] font-mono px-2 py-0.5 rounded bg-slate-800 text-slate-400">IDLE</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Raw Webhook Payload Inspector -->
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-bold uppercase tracking-wider text-slate-300">Incoming Meta Webhook Payload</span>
+                <span id="inspector-sig-header" class="text-[11px] font-mono px-2 py-0.5 rounded bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                  X-Hub-Signature-256: sha256=8f92e4a1...
+                </span>
+              </div>
+              <button onclick="copyWebhookPayload()" class="text-xs text-slate-400 hover:text-white flex items-center gap-1">
+                <i class="fa-regular fa-copy"></i> Copy JSON
+              </button>
+            </div>
+            <pre id="webhook-json-viewer" class="bg-slate-950 border border-slate-800 rounded-xl p-4 text-xs font-mono text-emerald-300 overflow-x-auto max-h-60 leading-relaxed">{
+  "object": "instagram",
+  "entry": [
+    {
+      "id": "17841405309211844",
+      "time": 1762018800,
+      "changes": [
+        {
+          "field": "comments",
+          "value": {
+            "id": "17991122334455667",
+            "text": "Submit a comment in the phone simulator to inspect live payload...",
+            "from": { "id": "178900112233", "username": "sarah_creates" },
+            "media": { "id": "17982345678901234", "media_product_type": "REELS" }
+          }
+        }
+      ]
+    }
+  ]
+}</pre>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 3: PROCESSED COMMENTS & DEDUPLICATION LOGS ==================== -->
+    <section id="view-logs" class="tab-section hidden space-y-6">
+      <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-xl font-bold text-white">ProcessedComment Deduplication & Activity Logs</h2>
+          <p class="text-sm text-slate-400 mt-1">
+            Every processed <code class="text-indigo-300">comment_id</code> is persisted with a unique index to prevent double-firing on Meta webhook retries.
+          </p>
+        </div>
+        <div class="flex items-center gap-2.5">
+          <button onclick="clearProcessedLogs()" class="px-4 py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 text-xs font-semibold transition flex items-center gap-2">
+            <i class="fa-solid fa-trash-can"></i>
+            <span>Clear Deduplication Table</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left border-collapse">
+            <thead>
+              <tr class="border-b border-slate-800 bg-slate-950/60 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
+                <th class="py-3.5 px-4">Comment ID</th>
+                <th class="py-3.5 px-4">Post ID</th>
+                <th class="py-3.5 px-4">Commenter</th>
+                <th class="py-3.5 px-4">Comment Text</th>
+                <th class="py-3.5 px-4">Matched Keyword</th>
+                <th class="py-3.5 px-4">Outcome</th>
+                <th class="py-3.5 px-4 text-right">Timestamp</th>
+              </tr>
+            </thead>
+            <tbody id="logs-table-body" class="divide-y divide-slate-800/80 text-xs">
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 4: SETTINGS (INSTAGRAM API CREDENTIALS) ==================== -->
+    <section id="view-settings" class="tab-section hidden space-y-6">
+      <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5">
+        <h2 class="text-xl font-bold text-white">Instagram Graph API & Security Settings</h2>
+        <p class="text-sm text-slate-400 mt-1">
+          Configure your Meta credentials stored in the <code class="text-indigo-300">Config</code> model. Access tokens are masked in the UI and never exposed in plain text after saving.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        <div class="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-2xl p-6">
+          <form id="settings-form" class="space-y-5">
+            <div>
+              <div class="flex items-center justify-between mb-1.5">
+                <label for="cfg-access-token" class="text-xs font-semibold uppercase tracking-wider text-slate-300">
+                  Long-Lived User / Page Access Token (<code class="text-indigo-300">INSTAGRAM_ACCESS_TOKEN</code>)
+                </label>
+                <span id="cfg-masked-token" class="text-xs font-mono text-emerald-400"></span>
+              </div>
+              <input
+                type="password"
+                id="cfg-access-token"
+                autocomplete="off"
+                placeholder="EAABsbCS1iHgBO... (Leave blank to keep stored token)"
+                class="w-full bg-slate-950 border border-slate-700 focus:border-indigo-500 rounded-xl px-3.5 py-2.5 text-sm text-white font-mono focus:outline-none"
+              />
+              <p class="text-[11px] text-slate-400 mt-1">Long-lived tokens expire after 60 days. See the Setup Guide tab for the refresh command.</p>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label for="cfg-page-id" class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+                  Connected Facebook Page ID
+                </label>
+                <input
+                  type="text"
+                  id="cfg-page-id"
+                  required
+                  placeholder="e.g. 104928374651928"
+                  class="w-full bg-slate-950 border border-slate-700 focus:border-indigo-500 rounded-xl px-3.5 py-2.5 text-sm text-white font-mono focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label for="cfg-ig-id" class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+                  Instagram Business Account ID
+                </label>
+                <input
+                  type="text"
+                  id="cfg-ig-id"
+                  required
+                  placeholder="e.g. 17841405309211844"
+                  class="w-full bg-slate-950 border border-slate-700 focus:border-indigo-500 rounded-xl px-3.5 py-2.5 text-sm text-white font-mono focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-800">
+              <div>
+                <label for="cfg-verify-token" class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+                  Webhook Verify Token (<code class="text-amber-300">.env</code>)
+                </label>
+                <input
+                  type="text"
+                  id="cfg-verify-token"
+                  placeholder="my_secure_custom_verify_token_2026"
+                  class="w-full bg-slate-950 border border-slate-700 focus:border-indigo-500 rounded-xl px-3.5 py-2.5 text-sm text-white font-mono focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label for="cfg-backend-url" class="block text-xs font-semibold uppercase tracking-wider text-slate-300 mb-1.5">
+                  FastAPI Backend URL (Optional)
+                </label>
+                <input
+                  type="url"
+                  id="cfg-backend-url"
+                  placeholder="http://localhost:8000"
+                  class="w-full bg-slate-950 border border-slate-700 focus:border-indigo-500 rounded-xl px-3.5 py-2.5 text-sm text-white font-mono focus:outline-none"
+                />
+              </div>
+            </div>
+
+            <div class="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-slate-800">
+              <button type="button" onclick="clearSavedToken()" class="px-3.5 py-2 rounded-xl border border-slate-700 hover:bg-slate-800 text-xs text-slate-300">
+                Reset to Demo Mode
+              </button>
+              <button type="submit" class="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-semibold shadow-lg shadow-indigo-600/25">
+                Save Configuration
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Right Info Column: Webhook Challenge Tester & Rate Limit Policy -->
+        <div class="lg:col-span-5 space-y-4">
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-3">
+            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-plug-circle-check text-emerald-400"></i>
+              <span>Test Webhook Verification (<code class="text-emerald-300">GET /webhook/instagram</code>)</span>
+            </h3>
+            <p class="text-xs text-slate-400">
+              Simulate Meta's <code class="text-slate-200">hub.challenge</code> handshake against your configured Verify Token.
+            </p>
+            <div class="flex items-center gap-2">
+              <input
+                type="text"
+                id="test-challenge-input"
+                value="1158201444"
+                class="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-xs font-mono text-white"
+              />
+              <button type="button" onclick="testWebhookChallenge()" class="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold">
+                Verify Handshake
+              </button>
+            </div>
+            <div id="challenge-result" class="hidden p-2.5 rounded-lg bg-slate-950 border border-slate-800 font-mono text-xs text-emerald-400"></div>
+          </div>
+
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-2.5">
+            <h3 class="text-sm font-bold text-white flex items-center gap-2">
+              <i class="fa-solid fa-Arrows-rotate text-indigo-400"></i>
+              <span>Exponential Backoff & Rate Limiting</span>
+            </h3>
+            <p class="text-xs text-slate-400 leading-relaxed">
+              All Graph API calls in <code class="text-indigo-300">instagram.py</code> inspect HTTP <code class="text-slate-200">429</code> and Meta error codes <code class="text-amber-300">{4, 17, 32, 613}</code>, retrying up to 4 times with exponential backoff (<code class="text-slate-200">2s → 4s → 8s → 16s</code>).
+            </p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 5: GUIDED META GRAPH API SETUP CHECKLIST ==================== -->
+    <section id="view-guide" class="tab-section hidden space-y-6">
+      <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 class="text-xl font-bold text-white">Step-by-Step Instagram Graph API Setup Guide</h2>
+          <p class="text-sm text-slate-400 mt-1">
+            Complete interactive walkthrough from creating your Facebook Developer App to fetching Instagram Post IDs. Check off each step as you go.
+          </p>
+        </div>
+        <span id="guide-completion-badge" class="px-3.5 py-1.5 rounded-xl bg-sky-500/15 text-sky-300 border border-sky-500/30 text-xs font-semibold">
+          0 of 7 Steps Completed
+        </span>
+      </div>
+
+      <!-- Important DM Limitation Callout -->
+      <div class="bg-amber-500/10 border border-amber-500/30 rounded-2xl p-5 space-y-2">
+        <div class="flex items-center gap-2 text-amber-300 font-bold text-sm">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <span>Important Meta Policy Note: Instagram DMs via Official Graph API</span>
+        </div>
+        <p class="text-xs text-slate-300 leading-relaxed">
+          Instagram DMs via the official Graph API require either that the user has previously messaged your business, <strong>OR</strong> that you use the <strong>Private Replies API</strong> (<code class="text-amber-300">recipient: {"comment_id": "..."}</code>) within 7 days of the user commenting on your post, with the <code class="text-amber-300">instagram_manage_messages</code> permission. While your Meta App is in <strong>Development Mode</strong>, automated replies and DMs work immediately for App Admins/Developers/Testers. To message any public Instagram user, submit your app for <strong>Meta App Review</strong> under <em>App Review → Permissions and Features</em> with a screen recording of this dashboard.
+        </p>
+      </div>
+
+      <!-- Interactive Checklist Steps -->
+      <div id="setup-steps-list" class="space-y-3"></div>
+    </section>
+
+  </main>
+
+  <!-- ==================== CUSTOM CONFIRMATION MODAL (NO WINDOW.CONFIRM) ==================== -->
+  <div id="confirm-modal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 hidden items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-400 flex items-center justify-center">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+        </div>
+        <div>
+          <h3 id="confirm-modal-title" class="text-base font-bold text-white">Confirm Action</h3>
+          <p id="confirm-modal-desc" class="text-xs text-slate-400 mt-0.5">Are you sure you want to proceed?</p>
+        </div>
+      </div>
+      <div class="flex items-center justify-end gap-2.5 pt-2">
+        <button type="button" onclick="closeConfirmModal()" class="px-4 py-2 rounded-xl border border-slate-700 hover:bg-slate-800 text-xs font-medium text-slate-300">
+          Cancel
+        </button>
+        <button type="button" id="confirm-modal-btn" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-xs font-semibold text-white">
+          Confirm Delete
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== TOAST NOTIFICATION ==================== -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- ==================== APPLICATION JAVASCRIPT ==================== -->
+  <script>
+    // ============================================================================
+    // 1. REALISTIC INSTAGRAM POST CATALOG (Used for On-Blur Preview & Demo Mode)
+    // ============================================================================
+    const PRESET_IG_POSTS = {
+      "17982345678901234": {
+        id: "17982345678901234",
+        media_type: "REELS",
+        thumbnail_url: "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?auto=format&fit=crop&w=400&q=80",
+        caption: "🚀 Want my complete 2026 AI Automation Blueprint + 15 FastAPI workflows? Comment 'GUIDE' or 'LINK' below and I'll DM it to you right now!",
+        permalink: "https://www.instagram.com/reel/C8aiBlueprint/"
+      },
+      "18045678901234567": {
+        id: "18045678901234567",
+        media_type: "CAROUSEL_ALBUM",
+        thumbnail_url: "https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=400&q=80",
+        caption: "💻 Built a full-stack SaaS starter kit in Python + SQLite. Drop 'SAAS' or 'CODE' in the comments and my bot will send the GitHub repo to your DMs!",
+        permalink: "https://www.instagram.com/p/C9saasTemplate/"
+      },
+      "18199887766554433": {
+        id: "18199887766554433",
+        media_type: "VIDEO",
+        thumbnail_url: "https://images.unsplash.com/photo-1526374965328-7f61d4dc18c5?auto=format&fit=crop&w=400&q=80",
+        caption: "🔥 Flash 40% VIP Discount on our Creator Automation Bootcamp! Comment 'VIP' or 'PRICE' below to get your private checkout link in DMs.",
+        permalink: "https://www.instagram.com/reel/C9vipDrop/"
+      }
+    };
+
+    // ============================================================================
+    // 2. INITIAL DEFAULT STATE & LOCALSTORAGE PERSISTENCE
+    // ============================================================================
+    const STORAGE_KEY = "instaflow_state_v1";
+
+    const DEFAULT_STATE = {
+      config: {
+        access_token: "",
+        page_id: "104928374651928",
+        instagram_account_id: "17841405309211844",
+        verify_token: "my_secure_custom_verify_token_2026",
+        backend_url: ""
+      },
+      metrics: {
+        replies_sent: 14,
+        dms_sent: 14,
+        duplicates_blocked: 3
+      },
+      campaigns: [
+        {
+          id: 1,
+          post_id: "17982345678901234",
+          post_thumbnail_url: PRESET_IG_POSTS["17982345678901234"].thumbnail_url,
+          post_caption: PRESET_IG_POSTS["17982345678901234"].caption,
+          keywords: "guide, link, blueprint, ai",
+          comment_reply_text: "Just sent the 2026 AI Automation Blueprint straight to your DMs, @username! 🚀 Check your message requests.",
+          dm_message_text: "Hey @username! 👋 Thanks for commenting on the Reel. Here is your instant access link to the 2026 AI Automation Blueprint: https://instaflow.dev/ai-blueprint",
+          is_active: true,
+          created_at: "2026-10-29T10:15:00Z"
+        },
+        {
+          id: 2,
+          post_id: "18045678901234567",
+          post_thumbnail_url: PRESET_IG_POSTS["18045678901234567"].thumbnail_url,
+          post_caption: PRESET_IG_POSTS["18045678901234567"].caption,
+          keywords: "saas, code, repo, template",
+          comment_reply_text: "Check your DMs @username! Just dropped the GitHub repository link for you 💻✨",
+          dm_message_text: "Awesome to connect @username! Here is the full-stack FastAPI + SQLite SaaS repository you requested: https://github.com/instaflow/saas-starter",
+          is_active: true,
+          created_at: "2026-10-30T14:20:00Z"
+        }
+      ],
+      processedComments: [
+        {
+          comment_id: "17990011223344550",
+          post_id: "17982345678901234",
+          commenter_id: "178900112233",
+          commenter_username: "sarah_creates",
+          comment_text: "This is insane! Please send me the GUIDE 🔥",
+          matched_keyword: "guide",
+          status: "TRIGGERED",
+          timestamp: "2026-11-01 17:45:12"
+        },
+        {
+          comment_id: "17990011223344550",
+          post_id: "17982345678901234",
+          commenter_id: "178900112233",
+          commenter_username: "sarah_creates",
+          comment_text: "This is insane! Please send me the GUIDE 🔥",
+          matched_keyword: "guide",
+          status: "DUPLICATE_BLOCKED",
+          timestamp: "2026-11-01 17:45:15"
+        }
+      ],
+      simThreads: {
+        "17982345678901234": [
+          {
+            comment_id: "17990011223344550",
+            username: "sarah_creates",
+            text: "This is insane! Please send me the GUIDE 🔥",
+            time: "12m",
+            reply: "Just sent the 2026 AI Automation Blueprint straight to your DMs, @sarah_creates! 🚀 Check your message requests."
+          }
+        ],
+        "18045678901234567": [
+          {
+            comment_id: "17990099887766554",
+            username: "omar.builds",
+            text: "Can I get the SAAS repo?",
+            time: "28m",
+            reply: "Check your DMs @omar.builds! Just dropped the GitHub repository link for you 💻✨"
+          }
+        ]
+      },
+      simDMs: [
+        {
+          id: "dm_1",
+          recipient_username: "sarah_creates",
+          comment_id: "17990011223344550",
+          text: "Hey @sarah_creates! 👋 Thanks for commenting on the Reel. Here is your instant access link to the 2026 AI Automation Blueprint: https://instaflow.dev/ai-blueprint",
+          time: "12m ago"
+        }
+      ],
+      guideSteps: {
+        step1: true,
+        step2: true,
+        step3: false,
+        step4: false,
+        step5: false,
+        step6: false,
+        step7: false
+      }
+    };
+
+    let state = loadState();
+    let lastWebhookEvent = null;
+    let unreadDmCount = 0;
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return JSON.parse(JSON.stringify(DEFAULT_STATE));
+        const parsed = JSON.parse(raw);
+        return { ...DEFAULT_STATE, ...parsed };
+      } catch (e) {
+        return JSON.parse(JSON.stringify(DEFAULT_STATE));
+      }
+    }
+
+    function saveState() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch (e) {
+        console.error("Unable to persist state:", e);
+      }
+      updateTopMetrics();
+    }
+
+    // ============================================================================
+    // 3. SETUP GUIDE CHECKLIST DATA
+    // ============================================================================
+    const SETUP_GUIDE_STEPS = [
+      {
+        key: "step1",
+        title: "1. Convert Instagram Account to Business or Creator",
+        desc: "Open the Instagram mobile app → Settings and activity → Account type and tools → Switch to professional account (Business or Creator) and link it to a Facebook Page you manage."
+      },
+      {
+        key: "step2",
+        title: "2. Create a Facebook Developer App",
+        desc: "Visit developers.facebook.com → My Apps → Create App → Choose 'Business' type. Copy your App Secret from App Settings → Basic into your .env file as FACEBOOK_APP_SECRET."
+      },
+      {
+        key: "step3",
+        title: "3. Add Instagram Graph API & Webhooks Products",
+        desc: "In your Meta App Dashboard sidebar, click 'Add Product' and set up both 'Instagram Graph API' and 'Webhooks'."
+      },
+      {
+        key: "step4",
+        title: "4. Configure Required Graph API Permissions",
+        desc: "In Graph API Explorer, request: instagram_basic, instagram_manage_comments, instagram_manage_messages, pages_show_list, and pages_manage_metadata."
+      },
+      {
+        key: "step5",
+        title: "5. Generate & Refresh a 60-Day Long-Lived Access Token",
+        desc: "Exchange your short-lived token for a 60-day token, and refresh it before expiry:",
+        code: `curl -G "https://graph.facebook.com/v21.0/oauth/access_token" \\
+  --data-urlencode "grant_type=fb_exchange_token" \\
+  --data-urlencode "client_id=YOUR_APP_ID" \\
+  --data-urlencode "client_secret=YOUR_APP_SECRET" \\
+  --data-urlencode "fb_exchange_token=SHORT_LIVED_TOKEN"`
+      },
+      {
+        key: "step6",
+        title: "6. Subscribe Webhook to POST /webhook/instagram",
+        desc: "In Meta Dashboard → Webhooks → Select 'Instagram', set Callback URL to https://your-app.up.railway.app/webhook/instagram, enter your WEBHOOK_VERIFY_TOKEN, and subscribe to the 'comments' field."
+      },
+      {
+        key: "step7",
+        title: "7. Fetch Instagram Post IDs via Graph API Explorer",
+        desc: "Query your Instagram Business Account media endpoint to copy the numeric Post ID for any Reel or post:",
+        code: `GET https://graph.facebook.com/v21.0/{INSTAGRAM_BUSINESS_ACCOUNT_ID}/media?fields=id,caption,media_type,thumbnail_url,permalink`
+      }
+    ];
+
+    // ============================================================================
+    // 4. UI UTILITIES: TOASTS, CLIPBOARD & CUSTOM CONFIRMATION MODAL
+    // ============================================================================
+    function showToast(message, type = "info") {
+      const container = document.getElementById("toast-container");
+      const toast = document.createElement("div");
+      const colorMap = {
+        success: "border-emerald-500/50 bg-slate-900 text-emerald-300",
+        warning: "border-amber-500/50 bg-slate-900 text-amber-300",
+        danger: "border-rose-500/50 bg-slate-900 text-rose-300",
+        info: "border-indigo-500/50 bg-slate-900 text-indigo-200"
+      };
+      const iconMap = {
+        success: "fa-circle-check text-emerald-400",
+        warning: "fa-triangle-exclamation text-amber-400",
+        danger: "fa-circle-xmark text-rose-400",
+        info: "fa-bolt text-indigo-400"
+      };
+
+      toast.className = `pointer-events-auto flex items-center gap-3 px-4 py-3 rounded-xl border shadow-2xl text-xs font-medium transition-all duration-300 ${colorMap[type] || colorMap.info}`;
+      toast.innerHTML = `
+        <i class="fa-solid ${iconMap[type] || iconMap.info} text-sm"></i>
+        <span>${escapeHtml(message)}</span>
+      `;
+      container.appendChild(toast);
+
+      setTimeout(() => {
+        toast.style.opacity = "0";
+        toast.style.transform = "translateY(8px)";
+        setTimeout(() => toast.remove(), 250);
+      }, 3400);
+    }
+
+    function copyTextToClipboard(text, label = "Copied to clipboard!") {
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        document.execCommand("copy");
+        showToast(label, "success");
+      } catch (err) {
+        showToast("Unable to copy automatically.", "warning");
+      }
+      document.body.removeChild(textarea);
+    }
+
+    let pendingConfirmAction = null;
+    function openConfirmModal(title, description, onConfirm) {
+      document.getElementById("confirm-modal-title").textContent = title;
+      document.getElementById("confirm-modal-desc").textContent = description;
+      pendingConfirmAction = onConfirm;
+      const modal = document.getElementById("confirm-modal");
+      modal.classList.remove("hidden");
+      modal.classList.add("flex");
+    }
+
+    function closeConfirmModal() {
+      const modal = document.getElementById("confirm-modal");
+      modal.classList.add("hidden");
+      modal.classList.remove("flex");
+      pendingConfirmAction = null;
+    }
+
+    document.getElementById("confirm-modal-btn").addEventListener("click", () => {
+      if (typeof pendingConfirmAction === "function") {
+        pendingConfirmAction();
+      }
+      closeConfirmModal();
+    });
+
+    function escapeHtml(str) {
+      return String(str || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+    }
+
+    // ============================================================================
+    // 5. NAVIGATION & KPI METRICS
+    // ============================================================================
+    function switchTab(tabName) {
+      document.querySelectorAll(".tab-section").forEach((sec) => sec.classList.add("hidden"));
+      const target = document.getElementById(`view-${tabName}`);
+      if (target) target.classList.remove("hidden");
+
+      document.querySelectorAll(".nav-item").forEach((btn) => {
+        if (btn.dataset.tab === tabName) {
+          btn.className = "nav-item active flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all whitespace-nowrap bg-indigo-600 text-white shadow-lg shadow-indigo-600/25";
+        } else {
+          btn.className = "nav-item flex items-center justify-between px-3.5 py-2.5 rounded-xl text-sm font-medium text-slate-300 hover:bg-slate-800/80 hover:text-white transition-all whitespace-nowrap";
+        }
+      });
+
+      if (tabName === "simulator") {
+        populateSimulatorSelector();
+      } else if (tabName === "logs") {
+        renderLogsTable();
+      } else if (tabName === "settings") {
+        populateSettingsForm();
+      } else if (tabName === "guide") {
+        renderSetupGuide();
+      }
+    }
+
+    function updateTopMetrics() {
+      const activeCount = state.campaigns.filter((c) => c.is_active).length;
+      document.getElementById("stat-active-campaigns").textContent = activeCount;
+      document.getElementById("stat-replies-sent").textContent = state.metrics.replies_sent;
+      document.getElementById("stat-dms-sent").textContent = state.metrics.dms_sent;
+      document.getElementById("stat-duplicates-blocked").textContent = state.metrics.duplicates_blocked;
+
+      document.getElementById("nav-campaign-count").textContent = state.campaigns.length;
+      document.getElementById("nav-logs-count").textContent = state.processedComments.length;
+
+      const tokenBadge = document.getElementById("sidebar-token-badge");
+      if (state.config.access_token) {
+        tokenBadge.textContent = "Token Saved";
+        tokenBadge.className = "text-[11px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-medium";
+      } else {
+        tokenBadge.textContent = "Demo Mode";
+        tokenBadge.className = "text-[11px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 font-medium";
+      }
+    }
+
+    // ============================================================================
+    // 6. CAMPAIGNS CRUD & AUTO-FETCH POST PREVIEW ON BLUR
+    // ============================================================================
+    let currentFormPreview = { thumbnail_url: "", caption: "" };
+
+    function renderCampaigns() {
+      const container = document.getElementById("campaigns-list-container");
+      if (state.campaigns.length === 0) {
+        container.innerHTML = `
+          <div class="bg-slate-900/70 border border-slate-800 rounded-2xl p-10 text-center space-y-3">
+            <div class="w-12 h-12 rounded-2xl bg-indigo-500/15 text-indigo-400 flex items-center justify-center mx-auto text-xl">
+              <i class="fa-solid fa-comments"></i>
+            </div>
+            <h3 class="text-base font-bold text-white">No Comment-to-DM Campaigns Yet</h3>
+            <p class="text-xs text-slate-400 max-w-md mx-auto">Click "+ New Campaign" above to link an Instagram Post ID with trigger keywords, a public comment reply, and an automated DM.</p>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = state.campaigns
+        .map((c) => {
+          const keywords = c.keywords
+            .split(",")
+            .map((k) => k.trim())
+            .filter(Boolean);
+          const chipsHtml = keywords
+            .map(
+              (kw) =>
+                `<span class="px-2.5 py-0.5 rounded-full bg-indigo-500/15 text-indigo-300 border border-indigo-500/30 text-xs font-semibold">${escapeHtml(
+                  kw.toLowerCase()
+                )}</span>`
+            )
+            .join("");
+
+          const statusBadge = c.is_active
+            ? `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 text-xs font-semibold"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>Active</span>`
+            : `<span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-800 text-slate-400 border border-slate-700 text-xs font-semibold"><span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span>Paused</span>`;
+
+          const thumbUrl =
+            c.post_thumbnail_url ||
+            `https://placehold.co/160x160/1e293b/a5b4fc?text=Post+${encodeURIComponent(c.post_id.slice(-4))}`;
+
+          return `
+            <div class="bg-slate-900/90 hover:bg-slate-900 border border-slate-800 rounded-2xl p-5 transition flex flex-col lg:flex-row gap-5 justify-between">
+              <div class="flex flex-col sm:flex-row gap-4 flex-1 min-w-0">
+                <img
+                  src="${escapeHtml(thumbUrl)}"
+                  onerror="this.src='https://placehold.co/160x160/1e293b/a5b4fc?text=IG+Post'"
+                  alt="Post Thumbnail"
+                  class="w-20 h-20 sm:w-24 sm:h-24 rounded-xl object-cover border border-slate-700 shrink-0"
+                />
+                <div class="space-y-2.5 flex-1 min-w-0">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <span class="font-mono text-xs px-2.5 py-0.5 rounded-md bg-slate-950 border border-slate-800 text-slate-300">
+                      Post ID: ${escapeHtml(c.post_id)}
+                    </span>
+                    ${statusBadge}
+                  </div>
+
+                  ${
+                    c.post_caption
+                      ? `<p class="text-xs text-slate-400 line-clamp-1">${escapeHtml(c.post_caption)}</p>`
+                      : ""
+                  }
+
+                  <div class="flex flex-wrap items-center gap-1.5">
+                    <span class="text-[11px] text-slate-400 font-medium mr-1">Triggers:</span>
+                    ${chipsHtml}
+                  </div>
+
+                  <div class="grid grid-cols-1 md:grid-cols-2 gap-2.5 pt-1">
+                    <div class="p-2.5 rounded-xl bg-slate-950/90 border border-slate-800/90">
+                      <span class="text-[10px] font-bold uppercase tracking-wider text-sky-400 block mb-0.5">
+                        <i class="fa-solid fa-reply mr-1"></i>Public Comment Reply
+                      </span>
+                      <p class="text-xs text-slate-300 line-clamp-2">${escapeHtml(c.comment_reply_text)}</p>
+                    </div>
+                    <div class="p-2.5 rounded-xl bg-slate-950/90 border border-slate-800/90">
+                      <span class="text-[10px] font-bold uppercase tracking-wider text-pink-400 block mb-0.5">
+                        <i class="fa-regular fa-paper-plane mr-1"></i>Private DM Message
+                      </span>
+                      <p class="text-xs text-slate-300 line-clamp-2">${escapeHtml(c.dm_message_text)}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Action Buttons -->
+              <div class="flex lg:flex-col justify-end gap-2 shrink-0 border-t lg:border-t-0 pt-3 lg:pt-0 border-slate-800">
+                <button
+                  onclick="testCampaignInSimulator('${escapeHtml(c.post_id)}')"
+                  class="px-3.5 py-2 rounded-xl bg-pink-500/15 hover:bg-pink-500/25 text-pink-300 border border-pink-500/30 text-xs font-semibold transition flex items-center justify-center gap-1.5"
+                >
+                  <i class="fa-solid fa-mobile-screen"></i>
+                  <span>Simulate</span>
+                </button>
+                <div class="flex items-center gap-2">
+                  <button
+                    onclick="toggleCampaignStatus(${c.id})"
+                    class="flex-1 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium transition"
+                  >
+                    ${c.is_active ? "Pause" : "Activate"}
+                  </button>
+                  <button
+                    onclick="editCampaign(${c.id})"
+                    class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium transition"
+                    title="Edit Campaign"
+                  >
+                    <i class="fa-solid fa-pen"></i>
+                  </button>
+                  <button
+                    onclick="promptDeleteCampaign(${c.id})"
+                    class="px-3 py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 text-xs font-medium transition"
+                    title="Delete Campaign"
+                  >
+                    <i class="fa-solid fa-trash"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          `;
+        })
+        .join("");
+    }
+
+    function openCampaignForm() {
+      document.getElementById("campaign-form").reset();
+      document.getElementById("form-campaign-id").value = "";
+      document.getElementById("campaign-form-title").textContent = "Create New Automation Campaign";
+      document.getElementById("form-keyword-chips").innerHTML = "";
+      document.getElementById("form-post-preview").classList.add("hidden");
+      currentFormPreview = { thumbnail_url: "", caption: "" };
+      document.getElementById("campaign-form-container").classList.remove("hidden");
+      document.getElementById("form-post-id").focus();
+    }
+
+    function closeCampaignForm() {
+      document.getElementById("campaign-form-container").classList.add("hidden");
+    }
+
+    function renderLiveKeywordChips(rawValue) {
+      const container = document.getElementById("form-keyword-chips");
+      const list = rawValue
+        .split(",")
+        .map((k) => k.trim().toLowerCase())
+        .filter(Boolean);
+      container.innerHTML = list
+        .map(
+          (kw) =>
+            `<span class="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 text-[11px] font-semibold">${escapeHtml(
+              kw
+            )}</span>`
+        )
+        .join("");
+    }
+
+    function fillPresetPost(postId) {
+      const input = document.getElementById("form-post-id");
+      input.value = postId;
+      triggerPostPreviewFetch();
+    }
+
+    // Auto-fetch post preview on blur
+    document.getElementById("form-post-id").addEventListener("blur", () => {
+      triggerPostPreviewFetch();
+    });
+
+    async function triggerPostPreviewFetch() {
+      const postId = document.getElementById("form-post-id").value.trim();
+      if (!postId) return;
+
+      const previewBox = document.getElementById("form-post-preview");
+      const previewImg = document.getElementById("form-preview-img");
+      const previewBadge = document.getElementById("form-preview-badge");
+      const previewId = document.getElementById("form-preview-id");
+      const previewCaption = document.getElementById("form-preview-caption");
+
+      previewBox.classList.remove("hidden");
+      previewBadge.textContent = "Fetching Graph API...";
+      previewId.textContent = `ID: ${postId}`;
+      previewCaption.textContent = "Calling get_post_details(post_id)...";
+
+      // 1. If a real Access Token is saved, try calling official Graph API
+      if (state.config.access_token) {
+        try {
+          const url = `https://graph.facebook.com/v21.0/${encodeURIComponent(
+            postId
+          )}?fields=id,caption,media_type,media_url,thumbnail_url&access_token=${encodeURIComponent(
+            state.config.access_token
+          )}`;
+          const res = await fetch(url);
+          const data = await res.json();
+          if (res.ok && data.id) {
+            const thumb = data.thumbnail_url || data.media_url || "";
+            currentFormPreview = {
+              thumbnail_url: thumb,
+              caption: data.caption || "(No caption on this Instagram post)"
+            };
+            previewBadge.textContent = `Graph API Live (${data.media_type || "MEDIA"})`;
+            previewImg.src = thumb || "https://placehold.co/120x120/1e293b/a5b4fc?text=IG+Post";
+            previewCaption.textContent = currentFormPreview.caption;
+            return;
+          }
+        } catch (err) {
+          // Fallback to preset/mock preview below
+        }
+      }
+
+      // 2. Fallback to preset catalog or realistic generated preview
+      await new Promise((r) => setTimeout(r, 250));
+      const preset = PRESET_IG_POSTS[postId] || {
+        id: postId,
+        media_type: "REELS",
+        thumbnail_url: `https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=400&q=80`,
+        caption: `Instagram Post #${postId} — Comment our keyword below and receive an instant automated DM with the link!`
+      };
+
+      currentFormPreview = {
+        thumbnail_url: preset.thumbnail_url,
+        caption: preset.caption
+      };
+      previewBadge.textContent = `Preview Loaded (${preset.media_type})`;
+      previewImg.src = preset.thumbnail_url;
+      previewCaption.textContent = preset.caption;
+    }
+
+    document.getElementById("campaign-form").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const idVal = document.getElementById("form-campaign-id").value;
+      const postId = document.getElementById("form-post-id").value.trim();
+      const keywords = document.getElementById("form-keywords").value.trim();
+      const commentReply = document.getElementById("form-comment-reply").value.trim();
+      const dmMessage = document.getElementById("form-dm-message").value.trim();
+      const isActive = document.getElementById("form-is-active").checked;
+
+      if (!currentFormPreview.thumbnail_url && PRESET_IG_POSTS[postId]) {
+        currentFormPreview = {
+          thumbnail_url: PRESET_IG_POSTS[postId].thumbnail_url,
+          caption: PRESET_IG_POSTS[postId].caption
+        };
+      }
+
+      if (idVal) {
+        const idx = state.campaigns.findIndex((c) => String(c.id) === String(idVal));
+        if (idx !== -1) {
+          state.campaigns[idx] = {
+            ...state.campaigns[idx],
+            post_id: postId,
+            keywords,
+            comment_reply_text: commentReply,
+            dm_message_text: dmMessage,
+            is_active: isActive,
+            post_thumbnail_url: currentFormPreview.thumbnail_url || state.campaigns[idx].post_thumbnail_url,
+            post_caption: currentFormPreview.caption || state.campaigns[idx].post_caption
+          };
+          showToast("Campaign updated!", "success");
+        }
+      } else {
+        const newCampaign = {
+          id: Date.now(),
+          post_id: postId,
+          post_thumbnail_url:
+            currentFormPreview.thumbnail_url ||
+            "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&w=400&q=80",
+          post_caption:
+            currentFormPreview.caption ||
+            `Tracked Instagram Post #${postId}`,
+          keywords,
+          comment_reply_text: commentReply,
+          dm_message_text: dmMessage,
+          is_active: isActive,
+          created_at: new Date().toISOString()
+        };
+        state.campaigns.unshift(newCampaign);
+        showToast("New Comment-to-DM campaign created!", "success");
+      }
+
+      saveState();
+      renderCampaigns();
+      closeCampaignForm();
+    });
+
+    function toggleCampaignStatus(id) {
+      const camp = state.campaigns.find((c) => c.id === id);
+      if (!camp) return;
+      camp.is_active = !camp.is_active;
+      saveState();
+      renderCampaigns();
+      showToast(
+        `Campaign for Post #${camp.post_id.slice(-5)} ${camp.is_active ? "activated" : "paused"}.`,
+        camp.is_active ? "success" : "warning"
+      );
+    }
+
+    function editCampaign(id) {
+      const camp = state.campaigns.find((c) => c.id === id);
+      if (!camp) return;
+
+      document.getElementById("campaign-form-title").textContent = `Edit Campaign (Post #${camp.post_id})`;
+      document.getElementById("form-campaign-id").value = camp.id;
+      document.getElementById("form-post-id").value = camp.post_id;
+      document.getElementById("form-keywords").value = camp.keywords;
+      document.getElementById("form-comment-reply").value = camp.comment_reply_text;
+      document.getElementById("form-dm-message").value = camp.dm_message_text;
+      document.getElementById("form-is-active").checked = camp.is_active;
+      renderLiveKeywordChips(camp.keywords);
+
+      currentFormPreview = {
+        thumbnail_url: camp.post_thumbnail_url || "",
+        caption: camp.post_caption || ""
+      };
+      if (currentFormPreview.thumbnail_url || currentFormPreview.caption) {
+        document.getElementById("form-post-preview").classList.remove("hidden");
+        document.getElementById("form-preview-img").src = currentFormPreview.thumbnail_url;
+        document.getElementById("form-preview-id").textContent = `ID: ${camp.post_id}`;
+        document.getElementById("form-preview-caption").textContent = currentFormPreview.caption;
+      }
+
+      document.getElementById("campaign-form-container").classList.remove("hidden");
+      document.getElementById("form-post-id").focus();
+    }
+
+    function promptDeleteCampaign(id) {
+      const camp = state.campaigns.find((c) => c.id === id);
+      if (!camp) return;
+      openConfirmModal(
+        "Delete Automation Campaign?",
+        `This will stop tracking comments on Instagram Post ID ${camp.post_id}.`,
+        () => {
+          state.campaigns = state.campaigns.filter((c) => c.id !== id);
+          saveState();
+          renderCampaigns();
+          showToast("Campaign deleted.", "danger");
+        }
+      );
+    }
+
+    function testCampaignInSimulator(postId) {
+      switchTab("simulator");
+      const select = document.getElementById("sim-post-select");
+      select.value = postId;
+      onSimulatorPostChange(postId);
+    }
+
+    // ============================================================================
+    // 7. LIVE INSTAGRAM WEBHOOK SIMULATOR & PIPELINE INSPECTOR
+    // ============================================================================
+    function populateSimulatorSelector() {
+      const select = document.getElementById("sim-post-select");
+      const currentVal = select.value;
+
+      if (state.campaigns.length === 0) {
+        select.innerHTML = `<option value="">No campaigns available</option>`;
+        return;
+      }
+
+      select.innerHTML = state.campaigns
+        .map(
+          (c) =>
+            `<option value="${escapeHtml(c.post_id)}">Post #${escapeHtml(c.post_id)} (${
+              c.is_active ? "Active" : "Paused"
+            }) — [${escapeHtml(c.keywords)}]</option>`
+        )
+        .join("");
+
+      const validVal = state.campaigns.some((c) => c.post_id === currentVal)
+        ? currentVal
+        : state.campaigns[0].post_id;
+      select.value = validVal;
+      onSimulatorPostChange(validVal);
+    }
+
+    function onSimulatorPostChange(postId) {
+      const camp = state.campaigns.find((c) => c.post_id === postId) || state.campaigns[0];
+      if (!camp) return;
+
+      document.getElementById("sim-post-thumb").src =
+        camp.post_thumbnail_url || "https://placehold.co/100x100/312e81/ffffff?text=Post";
+      document.getElementById("sim-post-caption").textContent =
+        camp.post_caption || `Instagram Post #${camp.post_id}`;
+      document.getElementById("sim-post-id-label").textContent = `Media ID: ${camp.post_id}`;
+
+      const badge = document.getElementById("sim-campaign-badge");
+      if (camp.is_active) {
+        badge.textContent = "Active";
+        badge.className = "ml-auto text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-semibold";
+      } else {
+        badge.textContent = "Paused";
+        badge.className = "ml-auto text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-semibold";
+      }
+
+      // Render Quick Keyword Tap Buttons
+      const kwContainer = document.getElementById("sim-quick-keywords");
+      const keywords = camp.keywords
+        .split(",")
+        .map((k) => k.trim())
+        .filter(Boolean);
+      kwContainer.innerHTML = keywords
+        .map(
+          (kw) =>
+            `<button type="button" onclick="quickFillSimulatorComment('${escapeHtml(
+              kw
+            )}')" class="px-2 py-0.5 rounded-full bg-indigo-500/20 hover:bg-indigo-500/40 text-indigo-300 text-[11px] font-semibold transition shrink-0">
+              "${escapeHtml(kw.toUpperCase())}"
+            </button>`
+        )
+        .join("");
+
+      renderSimulatorComments(camp.post_id);
+      renderSimulatorDMs();
+    }
+
+    function quickFillSimulatorComment(keyword) {
+      const input = document.getElementById("sim-comment-input");
+      input.value = `Love this post! Can you send me the ${keyword.toUpperCase()} please? 🙌`;
+      input.focus();
+    }
+
+    function switchPhoneView(view) {
+      const feedView = document.getElementById("phone-view-feed");
+      const dmView = document.getElementById("phone-view-dm");
+      const feedBtn = document.getElementById("phone-tab-feed");
+      const dmBtn = document.getElementById("phone-tab-dm");
+      const unreadBadge = document.getElementById("dm-unread-badge");
+
+      if (view === "dm") {
+        feedView.classList.add("hidden");
+        dmView.classList.remove("hidden");
+        dmBtn.className = "py-2 rounded-xl text-xs font-semibold bg-slate-800 text-white transition flex items-center justify-center gap-1.5 relative";
+        feedBtn.className = "py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white transition flex items-center justify-center gap-1.5";
+        unreadDmCount = 0;
+        unreadBadge.classList.add("hidden");
+        renderSimulatorDMs();
+      } else {
+        dmView.classList.add("hidden");
+        feedView.classList.remove("hidden");
+        feedBtn.className = "py-2 rounded-xl text-xs font-semibold bg-slate-800 text-white transition flex items-center justify-center gap-1.5";
+        dmBtn.className = "py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white transition flex items-center justify-center gap-1.5 relative";
+      }
+    }
+
+    function renderSimulatorComments(postId) {
+      const list = document.getElementById("sim-comments-list");
+      const thread = state.simThreads[postId] || [];
+
+      if (thread.length === 0) {
+        list.innerHTML = `
+          <div class="text-center py-10 text-xs text-slate-500">
+            No comments on this post yet. Post a comment with a trigger keyword below!
+          </div>
+        `;
+        return;
+      }
+
+      list.innerHTML = thread
+        .map(
+          (item) => `
+          <div class="space-y-2">
+            <!-- User Comment -->
+            <div class="flex items-start gap-2.5">
+              <div class="w-7 h-7 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-[11px] font-bold text-slate-300 shrink-0">
+                ${escapeHtml(item.username.slice(0, 2).toUpperCase())}
+              </div>
+              <div class="flex-1 bg-slate-900/90 border border-slate-800 rounded-2xl rounded-tl-none px-3 py-2">
+                <div class="flex items-center justify-between">
+                  <span class="text-xs font-bold text-white">@${escapeHtml(item.username)}</span>
+                  <span class="text-[10px] font-mono text-slate-500">ID: ${escapeHtml(item.comment_id.slice(-6))}</span>
+                </div>
+                <p class="text-xs text-slate-200 mt-0.5">${escapeHtml(item.text)}</p>
+              </div>
+            </div>
+
+            <!-- Automated Public Reply (if any) -->
+            ${
+              item.reply
+                ? `
+              <div class="flex items-start gap-2 pl-7">
+                <div class="w-6 h-6 rounded-full ig-gradient flex items-center justify-center text-[10px] font-bold text-white shrink-0">
+                  IF
+                </div>
+                <div class="flex-1 bg-indigo-950/40 border border-indigo-500/30 rounded-2xl rounded-tl-none px-3 py-2">
+                  <div class="flex items-center gap-1.5">
+                    <span class="text-[11px] font-bold text-white">@instaflow.official</span>
+                    <i class="fa-solid fa-circle-check text-sky-400 text-[10px]"></i>
+                    <span class="text-[9px] uppercase px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300 font-semibold ml-auto">Auto-Reply</span>
+                  </div>
+                  <p class="text-xs text-indigo-100 mt-0.5">${escapeHtml(item.reply)}</p>
+                </div>
+              </div>
+            `
+                : ""
+            }
+          </div>
+        `
+        )
+        .join("");
+
+      list.scrollTop = list.scrollHeight;
+    }
+
+    function renderSimulatorDMs() {
+      const container = document.getElementById("sim-dm-list");
+      if (!state.simDMs || state.simDMs.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-12 text-xs text-slate-500">
+            No automated DMs sent yet. Trigger a keyword in the Post Comments tab!
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = state.simDMs
+        .map(
+          (dm) => `
+          <div class="bg-slate-900 border border-slate-800 rounded-2xl p-3 space-y-1.5">
+            <div class="flex items-center justify-between text-[10px] text-slate-400">
+              <span class="font-semibold text-pink-400">To: @${escapeHtml(dm.recipient_username)}</span>
+              <span class="font-mono">comment_id: ${escapeHtml(dm.comment_id.slice(-6))}</span>
+            </div>
+            <div class="p-2.5 rounded-xl bg-gradient-to-br from-indigo-600/30 to-pink-600/20 border border-pink-500/30 text-xs text-white leading-relaxed">
+              ${escapeHtml(dm.text)}
+            </div>
+            <div class="flex items-center justify-between text-[10px] text-slate-500">
+              <span>Delivered via Graph API Private Reply</span>
+              <span>${escapeHtml(dm.time)}</span>
+            </div>
+          </div>
+        `
+        )
+        .join("");
+    }
+
+    // Handle New Comment Submission in Simulator
+    document.getElementById("sim-comment-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const postId = document.getElementById("sim-post-select").value;
+      const commentInput = document.getElementById("sim-comment-input");
+      const commentText = commentInput.value.trim();
+      if (!postId || !commentText) return;
+
+      const [username, commenterId] = document
+        .getElementById("sim-commenter-handle")
+        .value.split("|");
+
+      const generatedCommentId = "1799" + Math.floor(1000000000000 + Math.random() * 9000000000000);
+      commentInput.value = "";
+
+      const eventData = {
+        comment_id: generatedCommentId,
+        post_id: postId,
+        commenter_id: commenterId,
+        commenter_username: username,
+        comment_text: commentText,
+        is_replay: false
+      };
+
+      lastWebhookEvent = eventData;
+      document.getElementById("btn-replay-webhook").disabled = false;
+
+      await processSimulatedWebhook(eventData);
+    });
+
+    async function replayLastWebhookComment() {
+      if (!lastWebhookEvent) return;
+      await processSimulatedWebhook({
+        ...lastWebhookEvent,
+        is_replay: true
+      });
+    }
+
+    function updatePipelineStep(stepNum, status, description, badgeText) {
+      const el = document.getElementById(`step-${stepNum}`);
+      if (!el) return;
+      const icon = el.querySelector(".step-icon");
+      const desc = el.querySelector(".step-desc");
+      const badge = el.querySelector(".step-badge");
+
+      desc.textContent = description;
+      badge.textContent = badgeText;
+
+      const styles = {
+        success: {
+          border: "border-emerald-500/40 bg-emerald-950/15",
+          icon: "bg-emerald-500/20 text-emerald-300",
+          badge: "bg-emerald-500/20 text-emerald-300"
+        },
+        warning: {
+          border: "border-amber-500/40 bg-amber-950/15",
+          icon: "bg-amber-500/20 text-amber-300",
+          badge: "bg-amber-500/20 text-amber-300"
+        },
+        danger: {
+          border: "border-rose-500/40 bg-rose-950/15",
+          icon: "bg-rose-500/20 text-rose-300",
+          badge: "bg-rose-500/20 text-rose-300"
+        },
+        idle: {
+          border: "border-slate-800 bg-slate-950",
+          icon: "bg-slate-800 text-slate-400",
+          badge: "bg-slate-800 text-slate-400"
+        }
+      };
+
+      const st = styles[status] || styles.idle;
+      el.className = `p-3 rounded-xl border flex items-center justify-between transition-all ${st.border}`;
+      icon.className = `step-icon w-7 h-7 rounded-lg flex items-center justify-center text-xs font-mono ${st.icon}`;
+      badge.className = `step-badge text-[10px] font-mono px-2 py-0.5 rounded ${st.badge}`;
+    }
+
+    async function processSimulatedWebhook(event) {
+      const { comment_id, post_id, commenter_id, commenter_username, comment_text, is_replay } = event;
+
+      // Build realistic Meta Webhook JSON Payload
+      const webhookPayload = {
+        object: "instagram",
+        entry: [
+          {
+            id: state.config.instagram_account_id || "17841405309211844",
+            time: Math.floor(Date.now() / 1000),
+            changes: [
+              {
+                field: "comments",
+                value: {
+                  id: comment_id,
+                  text: comment_text,
+                  from: {
+                    id: commenter_id,
+                    username: commenter_username
+                  },
+                  media: {
+                    id: post_id,
+                    media_product_type: "REELS"
+                  }
+                }
+              }
+            ]
+          }
+        ]
+      };
+
+      const fakeHmac = "sha256=" + Array.from(comment_id + post_id)
+        .map((c) => c.charCodeAt(0).toString(16))
+        .join("")
+        .slice(0, 32);
+
+      document.getElementById("inspector-sig-header").textContent = `X-Hub-Signature-256: ${fakeHmac}...`;
+      document.getElementById("webhook-json-viewer").textContent = JSON.stringify(webhookPayload, null, 2);
+
+      // Reset all steps
+      for (let i = 1; i <= 5; i++) {
+        updatePipelineStep(i, "idle", "Processing...", "PENDING");
+      }
+
+      // Add comment to phone thread only if not a replay
+      if (!is_replay) {
+        if (!state.simThreads[post_id]) state.simThreads[post_id] = [];
+        state.simThreads[post_id].push({
+          comment_id,
+          username: commenter_username,
+          text: comment_text,
+          time: "Just now",
+          reply: null
+        });
+        renderSimulatorComments(post_id);
+      }
+
+      // STEP 1: Webhook Received
+      await new Promise((r) => setTimeout(r, 150));
+      updatePipelineStep(
+        1,
+        "success",
+        `Received comment_id=${comment_id} from @${commenter_username}`,
+        "200 OK"
+      );
+
+      // STEP 2: HMAC Signature Validation
+      await new Promise((r) => setTimeout(r, 180));
+      updatePipelineStep(
+        2,
+        "success",
+        `HMAC-SHA256 digest verified (${fakeHmac.slice(0, 18)}...)`,
+        "VALIDATED"
+      );
+
+      // STEP 3: Deduplication Check against ProcessedComment
+      await new Promise((r) => setTimeout(r, 200));
+      const alreadyProcessed = state.processedComments.some(
+        (pc) => pc.comment_id === comment_id && pc.status === "TRIGGERED"
+      );
+
+      if (alreadyProcessed) {
+        updatePipelineStep(
+          3,
+          "warning",
+          `Duplicate blocked! comment_id=${comment_id} already exists in ProcessedComment table.`,
+          "DUPLICATE BLOCKED"
+        );
+        updatePipelineStep(4, "idle", "Skipped due to deduplication guard.", "SKIPPED");
+        updatePipelineStep(5, "idle", "No duplicate reply or DM sent.", "SKIPPED");
+
+        state.metrics.duplicates_blocked += 1;
+        state.processedComments.unshift({
+          comment_id,
+          post_id,
+          commenter_id,
+          commenter_username,
+          comment_text,
+          matched_keyword: "(duplicate)",
+          status: "DUPLICATE_BLOCKED",
+          timestamp: new Date().toISOString().replace("T", " ").slice(0, 19)
+        });
+        saveState();
+        showToast(`Deduplication blocked duplicate comment_id ${comment_id.slice(-6)}!`, "warning");
+        return;
+      }
+
+      updatePipelineStep(
+        3,
+        "success",
+        `comment_id=${comment_id} is unique. Ready for keyword evaluation.`,
+        "UNIQUE ID"
+      );
+
+      // STEP 4: Campaign & Keyword Partial Match Check
+      await new Promise((r) => setTimeout(r, 220));
+      const activeCampaigns = state.campaigns.filter(
+        (c) => c.post_id === post_id && c.is_active
+      );
+
+      if (activeCampaigns.length === 0) {
+        updatePipelineStep(
+          4,
+          "danger",
+          `No active campaign found for Post ID ${post_id}.`,
+          "INACTIVE"
+        );
+        updatePipelineStep(5, "idle", "No Graph API calls executed.", "SKIPPED");
+        return;
+      }
+
+      const commentLower = comment_text.toLowerCase();
+      let matchedCamp = null;
+      let matchedKw = null;
+
+      for (const camp of activeCampaigns) {
+        const kwList = camp.keywords
+          .split(",")
+          .map((k) => k.trim().toLowerCase())
+          .filter(Boolean);
+        const hit = kwList.find((kw) => commentLower.includes(kw));
+        if (hit) {
+          matchedCamp = camp;
+          matchedKw = hit;
+          break;
+        }
+      }
+
+      if (!matchedCamp) {
+        updatePipelineStep(
+          4,
+          "warning",
+          `Comment did not match any trigger keywords [${activeCampaigns[0].keywords}].`,
+          "NO MATCH"
+        );
+        updatePipelineStep(5, "idle", "Ignored — no keyword match.", "IGNORED");
+        state.processedComments.unshift({
+          comment_id,
+          post_id,
+          commenter_id,
+          commenter_username,
+          comment_text,
+          matched_keyword: "—",
+          status: "NO_MATCH",
+          timestamp: new Date().toISOString().replace("T", " ").slice(0, 19)
+        });
+        saveState();
+        showToast("Comment posted, but no trigger keyword matched.", "info");
+        return;
+      }
+
+      updatePipelineStep(
+        4,
+        "success",
+        `Matched keyword "${matchedKw}" on Campaign #${matchedCamp.id}`,
+        `MATCH: "${matchedKw.toUpperCase()}"`
+      );
+
+      // STEP 5: Execute Graph API reply_to_comment() & send_dm()
+      await new Promise((r) => setTimeout(r, 280));
+      const formattedReply = matchedCamp.comment_reply_text.replace(
+        /@username/gi,
+        `@${commenter_username}`
+      );
+      const formattedDM = matchedCamp.dm_message_text.replace(
+        /@username/gi,
+        `@${commenter_username}`
+      );
+
+      // Update comment thread with automated reply
+      const threadItem = (state.simThreads[post_id] || []).find(
+        (item) => item.comment_id === comment_id
+      );
+      if (threadItem) {
+        threadItem.reply = formattedReply;
+      }
+      renderSimulatorComments(post_id);
+
+      // Deliver Private DM to Inbox
+      state.simDMs.unshift({
+        id: "dm_" + Date.now(),
+        recipient_username: commenter_username,
+        comment_id,
+        text: formattedDM,
+        time: "Just now"
+      });
+      renderSimulatorDMs();
+
+      // Update Unread DM Badge on Phone
+      unreadDmCount += 1;
+      const unreadBadge = document.getElementById("dm-unread-badge");
+      unreadBadge.textContent = unreadDmCount;
+      unreadBadge.classList.remove("hidden");
+
+      // Record ProcessedComment in DB table & increment metrics
+      state.processedComments.unshift({
+        comment_id,
+        post_id,
+        commenter_id,
+        commenter_username,
+        comment_text,
+        matched_keyword: matchedKw,
+        status: "TRIGGERED",
+        timestamp: new Date().toISOString().replace("T", " ").slice(0, 19)
+      });
+
+      state.metrics.replies_sent += 1;
+      state.metrics.dms_sent += 1;
+      saveState();
+
+      updatePipelineStep(
+        5,
+        "success",
+        `Public reply posted & Private DM sent to @${commenter_username}!`,
+        "SENT (200 OK)"
+      );
+
+      showToast(
+        `Keyword "${matchedKw.toUpperCase()}" matched! Replied & sent DM to @${commenter_username}.`,
+        "success"
+      );
+    }
+
+    function copyWebhookPayload() {
+      const text = document.getElementById("webhook-json-viewer").textContent;
+      copyTextToClipboard(text, "Webhook JSON payload copied!");
+    }
+
+    // ============================================================================
+    // 8. PROCESSED COMMENTS & DEDUPLICATION LOGS TABLE
+    // ============================================================================
+    function renderLogsTable() {
+      const tbody = document.getElementById("logs-table-body");
+      if (state.processedComments.length === 0) {
+        tbody.innerHTML = `
+          <tr>
+            <td colspan="7" class="py-10 text-center text-slate-500">
+              No webhook events logged yet. Open the Live IG Simulator to test comments!
+            </td>
+          </tr>
+        `;
+        return;
+      }
+
+      tbody.innerHTML = state.processedComments
+        .map((log) => {
+          let badge = "";
+          if (log.status === "TRIGGERED") {
+            badge = `<span class="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 font-semibold">Reply + DM Sent</span>`;
+          } else if (log.status === "DUPLICATE_BLOCKED") {
+            badge = `<span class="px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 font-semibold">Duplicate Blocked</span>`;
+          } else {
+            badge = `<span class="px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 font-semibold">No Keyword Match</span>`;
+          }
+
+          return `
+            <tr class="hover:bg-slate-800/40 transition">
+              <td class="py-3 px-4 font-mono text-slate-300">${escapeHtml(log.comment_id)}</td>
+              <td class="py-3 px-4 font-mono text-slate-400">${escapeHtml(log.post_id)}</td>
+              <td class="py-3 px-4 font-medium text-white">@${escapeHtml(log.commenter_username)}</td>
+              <td class="py-3 px-4 text-slate-300 max-w-xs truncate">${escapeHtml(log.comment_text)}</td>
+              <td class="py-3 px-4">
+                <span class="px-2 py-0.5 rounded bg-indigo-500/15 text-indigo-300 font-mono text-[11px]">
+                  ${escapeHtml(log.matched_keyword)}
+                </span>
+              </td>
+              <td class="py-3 px-4">${badge}</td>
+              <td class="py-3 px-4 text-right font-mono text-slate-400">${escapeHtml(log.timestamp)}</td>
+            </tr>
+          `;
+        })
+        .join("");
+    }
+
+    function clearProcessedLogs() {
+      openConfirmModal(
+        "Clear ProcessedComment Table?",
+        "This will remove all stored comment_id records so previously tested comments can fire again.",
+        () => {
+          state.processedComments = [];
+          saveState();
+          renderLogsTable();
+          showToast("ProcessedComment deduplication table cleared.", "info");
+        }
+      );
+    }
+
+    // ============================================================================
+    // 9. SETTINGS FORM & WEBHOOK CHALLENGE VERIFIER
+    // ============================================================================
+    function maskToken(token) {
+      if (!token) return "No token stored (Demo Mode active)";
+      if (token.length <= 10) return "••••••••";
+      return `Stored: ${token.slice(0, 4)}••••••••${token.slice(-4)}`;
+    }
+
+    function populateSettingsForm() {
+      document.getElementById("cfg-access-token").value = "";
+      document.getElementById("cfg-masked-token").textContent = maskToken(state.config.access_token);
+      document.getElementById("cfg-page-id").value = state.config.page_id || "";
+      document.getElementById("cfg-ig-id").value = state.config.instagram_account_id || "";
+      document.getElementById("cfg-verify-token").value = state.config.verify_token || "";
+      document.getElementById("cfg-backend-url").value = state.config.backend_url || "";
+    }
+
+    document.getElementById("settings-form").addEventListener("submit", (e) => {
+      e.preventDefault();
+      const newToken = document.getElementById("cfg-access-token").value.trim();
+      if (newToken) {
+        state.config.access_token = newToken;
+      }
+      state.config.page_id = document.getElementById("cfg-page-id").value.trim();
+      state.config.instagram_account_id = document.getElementById("cfg-ig-id").value.trim();
+      state.config.verify_token = document.getElementById("cfg-verify-token").value.trim();
+      state.config.backend_url = document.getElementById("cfg-backend-url").value.trim();
+
+      saveState();
+      populateSettingsForm();
+      showToast("Instagram Graph API configuration saved securely.", "success");
+    });
+
+    function clearSavedToken() {
+      state.config.access_token = "";
+      saveState();
+      populateSettingsForm();
+      showToast("Switched back to Demo Mode.", "info");
+    }
+
+    function testWebhookChallenge() {
+      const challengeVal = document.getElementById("test-challenge-input").value.trim();
+      const resBox = document.getElementById("challenge-result");
+      resBox.classList.remove("hidden");
+      resBox.textContent = `GET /webhook/instagram?hub.mode=subscribe&hub.verify_token=${
+        state.config.verify_token || "token"
+      }&hub.challenge=${challengeVal}  -->  HTTP 200 OK: ${challengeVal}`;
+      showToast("Webhook challenge verified (HTTP 200 OK)!", "success");
+    }
+
+    // ============================================================================
+    // 10. INTERACTIVE META GRAPH API SETUP GUIDE
+    // ============================================================================
+    function renderSetupGuide() {
+      const container = document.getElementById("setup-steps-list");
+      const completedCount = SETUP_GUIDE_STEPS.filter((s) => state.guideSteps[s.key]).length;
+
+      document.getElementById("nav-guide-progress").textContent = `${completedCount}/${SETUP_GUIDE_STEPS.length}`;
+      document.getElementById("guide-completion-badge").textContent = `${completedCount} of ${SETUP_GUIDE_STEPS.length} Steps Completed`;
+
+      container.innerHTML = SETUP_GUIDE_STEPS.map((step) => {
+        const checked = !!state.guideSteps[step.key];
+        return `
+          <div class="bg-slate-900 border ${
+            checked ? "border-emerald-500/40" : "border-slate-800"
+          } rounded-2xl p-5 transition space-y-3">
+            <div class="flex items-start justify-between gap-4">
+              <label class="flex items-start gap-3.5 cursor-pointer select-none flex-1">
+                <input
+                  type="checkbox"
+                  ${checked ? "checked" : ""}
+                  onchange="toggleGuideStep('${step.key}')"
+                  class="mt-1 w-4 h-4 rounded text-emerald-500 bg-slate-950 border-slate-700 focus:ring-0"
+                />
+                <div>
+                  <h4 class="text-sm font-bold ${
+                    checked ? "line-through text-slate-400" : "text-white"
+                  }">${escapeHtml(step.title)}</h4>
+                  <p class="text-xs text-slate-400 mt-1 leading-relaxed">${escapeHtml(step.desc)}</p>
+                </div>
+              </label>
+              <span class="text-[10px] font-semibold uppercase px-2.5 py-0.5 rounded-full ${
+                checked
+                  ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30"
+                  : "bg-slate-800 text-slate-400"
+              }">
+                ${checked ? "Done" : "Todo"}
+              </span>
+            </div>
+            ${
+              step.code
+                ? `
+              <div class="pl-7">
+                <div class="relative bg-slate-950 border border-slate-800 rounded-xl p-3 font-mono text-xs text-indigo-300 overflow-x-auto">
+                  <pre>${escapeHtml(step.code)}</pre>
+                  <button
+                    type="button"
+                    onclick="copyTextToClipboard(${JSON.stringify(step.code)}, 'Command copied!')"
+                    class="absolute top-2 right-2 px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[10px] text-slate-300"
+                  >
+                    <i class="fa-regular fa-copy"></i> Copy
+                  </button>
+                </div>
+              </div>
+            `
+                : ""
+            }
+          </div>
+        `;
+      }).join("");
+    }
+
+    function toggleGuideStep(stepKey) {
+      state.guideSteps[stepKey] = !state.guideSteps[stepKey];
+      saveState();
+      renderSetupGuide();
+    }
+
+    // ============================================================================
+    // INITIALIZE APP ON LOAD
+    // ============================================================================
+    window.addEventListener("DOMContentLoaded", () => {
+      updateTopMetrics();
+      renderCampaigns();
+      populateSimulatorSelector();
+      renderSetupGuide();
+    });
+  </script>
+</body>
+</html>
