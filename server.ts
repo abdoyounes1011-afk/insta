@@ -341,6 +341,28 @@ app.post('/webhook/instagram', async (req: Request, res: Response) => {
 // 2. DIAGNOSTIC & API ROUTES FOR FRONTEND
 // ============================================================================
 
+// Tunnel Status
+app.get('/api/tunnel', async (_req, res) => {
+  let hostname = '';
+  try {
+    const q1 = await fetch('http://127.0.0.1:20241/quicktunnel')
+      .then((r) => r.json())
+      .catch(() => null);
+    const q2 = await fetch('http://127.0.0.1:20242/quicktunnel')
+      .then((r) => r.json())
+      .catch(() => null);
+    hostname = q1?.hostname || q2?.hostname || '';
+  } catch {}
+
+  const tunnelUrl = hostname ? `https://${hostname}/webhook/instagram` : '';
+  res.json({
+    active: !!hostname,
+    tunnel_url: tunnelUrl,
+    hostname,
+    fallback_url: `${serverConfig.backend_url || 'https://' + _req.get('host')}/webhook/instagram`
+  });
+});
+
 // Status & Health
 app.get('/api/status', (_req, res) => {
   res.json({
