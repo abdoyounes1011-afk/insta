@@ -2,7 +2,7 @@ import express, { Request, Response } from 'express';
 import crypto from 'crypto';
 import path from 'path';
 import dotenv from 'dotenv';
-import { normalizeText, matchKeywords } from './src/utils/textNormalizer';
+import { normalizeText, matchKeywords } from './src/utils/textNormalizer.ts';
 
 dotenv.config();
 
