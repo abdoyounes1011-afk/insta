@@ -83,11 +83,27 @@ export const CampaignsView: React.FC<CampaignsViewProps> = ({
   };
 
   const fetchPostPreview = async (idToFetch: string) => {
-    const cleanId = idToFetch.trim();
+    let cleanId = idToFetch.trim();
     if (!cleanId) return;
 
+    // Direct Instagram URL Parser (supports https://www.instagram.com/p/CODE/ or /reel/CODE/)
+    const urlMatch = cleanId.match(/instagram\.com\/(?:p|reel|reels)\/([A-Za-z0-9_-]+)/i);
+    const shortcode = urlMatch ? urlMatch[1] : '';
+
+    const shortcodeMap: Record<string, string> = {
+      C8aiBlueprint: '17982345678901234',
+      C9saasTemplate: '18045678901234567',
+      C9vipDrop: '18199887766554433'
+    };
+
+    if (shortcode && shortcodeMap[shortcode]) {
+      cleanId = shortcodeMap[shortcode];
+    } else if (shortcode) {
+      cleanId = shortcode;
+    }
+
     setIsFetchingPreview(true);
-    setPreviewBadge('Fetching...');
+    setPreviewBadge(shortcode ? `Link: ${shortcode}` : 'Fetching...');
 
     // 1. If an access token exists, try official Meta Graph API
     if (accessToken) {
@@ -307,7 +323,7 @@ export const CampaignsView: React.FC<CampaignsViewProps> = ({
                     value={postId}
                     onChange={(e) => setPostId(e.target.value)}
                     onBlur={() => fetchPostPreview(postId)}
-                    placeholder="e.g. 17982345678901234"
+                    placeholder={t.postIdPlaceholder}
                     className="w-full bg-slate-950 border border-slate-700 focus:border-indigo-500 rounded-xl px-3.5 py-2.5 text-sm text-white font-mono focus:outline-none dir-ltr text-start"
                   />
                   <button

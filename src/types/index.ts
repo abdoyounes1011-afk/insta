@@ -24,6 +24,8 @@ export interface ProcessedComment {
 }
 
 export interface Config {
+  automation_mode?: 'cloud_session' | 'meta_api';
+  session_id?: string;
   access_token: string;
   page_id: string;
   instagram_account_id: string;

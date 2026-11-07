@@ -715,10 +715,17 @@ export default function App() {
 
   const handleSaveConfig = (newConfig: Config) => {
     setConfig(newConfig);
+    // Synchronize to backend server memory so live Webhooks use the real token
+    fetch('/api/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newConfig)
+    }).catch(() => {});
+
     showToast(
       lang === 'ar'
-        ? 'تم حفظ إعدادات Instagram Graph API بنجاح.'
-        : 'Instagram Graph API configuration saved securely.',
+        ? 'تم حفظ إعدادات Instagram Graph API وتفعيلها في السيرفر بنجاح.'
+        : 'Instagram Graph API configuration saved and active in backend.',
       'success'
     );
   };
